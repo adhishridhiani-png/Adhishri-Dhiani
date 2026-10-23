@@ -1,0 +1,1132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#100d1b">
+  <title>Into the Void — A painted universe</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --paper: #f1e8df;
+      --muted: #a39aa6;
+      --line: rgba(243, 231, 239, .14);
+      --glass: rgba(15, 12, 24, .84);
+      --accent: #83f1db;
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body {
+      background: #100d1b;
+      color: var(--paper);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+    button, input, select { font: inherit; }
+    button { color: inherit; }
+    #world { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+    .grain {
+      position: fixed; z-index: 1; inset: -45%; pointer-events: none; opacity: .13;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.88' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.4'/%3E%3C/svg%3E") 0 0/180px 180px;
+      mix-blend-mode: soft-light;
+      animation: grain-shift .24s steps(2) infinite;
+    }
+    @keyframes grain-shift {
+      0% { transform: translate(0, 0); }
+      25% { transform: translate(1%, -1%); }
+      50% { transform: translate(-1%, 1%); }
+      75% { transform: translate(1%, 1%); }
+    }
+    .topline {
+      position: fixed; z-index: 2; top: 27px; left: 32px; display: flex; gap: 12px; align-items: center;
+      pointer-events: none; text-shadow: 0 1px 12px #100d1b;
+    }
+    .mark { width: 25px; height: 25px; border: 1px solid rgba(243,231,239,.52); border-radius: 50%; position: relative; }
+    .mark::before, .mark::after { content: ""; position: absolute; left: 11px; top: 2px; width: 1px; height: 19px; background: #83f1db; transform: rotate(43deg); }
+    .mark::after { transform: rotate(-43deg); background: #fa7096; }
+    .wordmark { margin: 0; font-size: 10px; font-weight: 650; letter-spacing: .21em; }
+    .subtitle { margin: 5px 0 0; color: rgba(241,232,223,.54); font-size: 8px; letter-spacing: .15em; text-transform: uppercase; }
+    .coordinates {
+      position: fixed; z-index: 2; top: 28px; right: 31px; color: rgba(241,232,223,.52);
+      font: 8px/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .1em; text-align: right; pointer-events: none;
+    }
+    .hint {
+      position: fixed; z-index: 2; bottom: 27px; left: 31px; color: rgba(241,232,223,.5);
+      font-size: 8px; letter-spacing: .11em; line-height: 1.75; text-transform: uppercase; pointer-events: none;
+    }
+    .hint span { color: rgba(241,232,223,.86); }
+    .dock {
+      position: fixed; z-index: 4; bottom: 18px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 2px; padding: 5px;
+      border: 1px solid rgba(243,231,239,.14); border-radius: 8px;
+      background: rgba(15,12,24,.74); backdrop-filter: blur(16px);
+    }
+    .dock button {
+      position: relative; display: flex; align-items: center; justify-content: center; gap: 7px;
+      min-width: 35px; height: 34px; padding: 0 9px; border: 0; border-radius: 5px;
+      color: rgba(241,232,223,.74); background: transparent; cursor: pointer;
+    }
+    .dock button:hover, .dock button[aria-pressed="true"] { color: var(--paper); background: rgba(255,255,255,.09); }
+    .dock .dock-label { font-size: 8px; letter-spacing: .09em; text-transform: uppercase; }
+    .dock .divider { width: 1px; height: 19px; margin: 0 3px; background: var(--line); }
+    .dock svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+    .dock [data-tooltip]::after {
+      content: attr(data-tooltip); position: absolute; left: 50%; bottom: calc(100% + 9px); transform: translate(-50%, 3px);
+      white-space: nowrap; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px;
+      background: #171321; color: var(--paper); font-size: 9px; letter-spacing: .04em;
+      opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s;
+    }
+    .dock [data-tooltip]:hover::after, .dock [data-tooltip]:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
+    .panel {
+      position: fixed; z-index: 5; top: 16px; right: 16px; bottom: 70px; width: min(365px, calc(100vw - 32px));
+      padding: 17px 18px 14px; overflow: auto; border: 1px solid rgba(243,231,239,.17); border-radius: 9px;
+      background: var(--glass); box-shadow: 0 20px 80px rgba(0,0,0,.38); backdrop-filter: blur(22px);
+      transform: translateX(calc(100% + 24px)); opacity: 0; visibility: hidden;
+      transition: transform .27s cubic-bezier(.2,.75,.25,1), opacity .2s, visibility .27s;
+      scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.2) transparent;
+    }
+    .panel.open { transform: translateX(0); opacity: 1; visibility: visible; }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 13px; border-bottom: 1px solid var(--line); }
+    .panel-head h1 { margin: 0; font-size: 10px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; }
+    .panel-head button, .icon-button {
+      display: grid; place-items: center; width: 26px; height: 26px; padding: 0;
+      border: 1px solid var(--line); border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer;
+    }
+    .panel-head button:hover, .icon-button:hover { color: var(--paper); border-color: rgba(255,255,255,.4); }
+    details { border-bottom: 1px solid var(--line); }
+    details:last-of-type { border-bottom: 0; }
+    summary {
+      list-style: none; display: flex; align-items: center; justify-content: space-between;
+      min-height: 40px; color: rgba(241,232,223,.82); font-size: 9px; font-weight: 600;
+      letter-spacing: .13em; text-transform: uppercase; cursor: pointer;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; color: rgba(241,232,223,.45); font-size: 15px; font-weight: 300; }
+    details[open] > summary::after { content: "−"; }
+    .detail-content { padding: 0 0 13px; }
+    .control { margin: 0 0 10px; }
+    .control:last-child { margin-bottom: 0; }
+    .control-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; color: rgba(241,232,223,.76); font-size: 9px; }
+    .control-head output { color: rgba(241,232,223,.46); font: 9px ui-monospace, monospace; }
+    .range-row { display: flex; align-items: center; gap: 9px; }
+    input[type="range"] {
+      appearance: none; flex: 1; height: 2px; margin: 6px 0;
+      background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--range, 50%), rgba(255,255,255,.17) var(--range, 50%), rgba(255,255,255,.17) 100%);
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb { appearance: none; width: 10px; height: 10px; border: 1px solid var(--accent); border-radius: 50%; background: #171321; }
+    input[type="range"]::-moz-range-thumb { width: 9px; height: 9px; border: 1px solid var(--accent); border-radius: 50%; background: #171321; }
+    .range-note { width: 24px; color: rgba(241,232,223,.33); font-size: 7px; }
+    .range-note:last-child { text-align: right; }
+    .segmented, .preset-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+    .segmented button, .preset-row button, .shape-grid button, .action-row button, .mix-row button {
+      border: 1px solid rgba(243,231,239,.13); border-radius: 4px;
+      background: rgba(255,255,255,.025); color: rgba(241,232,223,.59); cursor: pointer; transition: .16s ease;
+    }
+    .segmented button { min-height: 29px; padding: 4px 2px; font-size: 8px; }
+    .segmented button.active, .shape-grid button.active, .preset-row button.active {
+      border-color: rgba(131,241,219,.61); color: var(--paper); background: rgba(131,241,219,.08);
+    }
+    .segmented button:hover, .preset-row button:hover, .shape-grid button:hover, .action-row button:hover { border-color: rgba(243,231,239,.36); color: var(--paper); }
+    .inline-toggle { display: flex; align-items: center; gap: 7px; color: rgba(241,232,223,.65); font-size: 8px; cursor: pointer; }
+    .inline-toggle input { accent-color: var(--accent); }
+    .select-control { display: flex; flex-direction: column; gap: 6px; color: rgba(241,232,223,.76); font-size: 9px; }
+    .select-control select {
+      width: 100%; height: 34px; padding: 0 9px; border: 1px solid rgba(243,231,239,.17);
+      border-radius: 4px; color: var(--paper); background: #171321; font-size: 9px; cursor: pointer;
+    }
+    .mix-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px 10px; }
+    .mix-control { display: flex; flex-direction: column; gap: 4px; color: rgba(241,232,223,.55); font-size: 7px; }
+    .mix-control input { width: 100%; }
+    .preset-row { grid-template-columns: repeat(4, 1fr); margin-bottom: 9px; }
+    .preset-row button { min-height: 26px; padding: 3px 2px; font-size: 7px; }
+    .swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; }
+    .swatch { min-width: 0; display: flex; align-items: center; flex-direction: column; gap: 3px; color: rgba(241,232,223,.42); font: 7px ui-monospace, monospace; }
+    .swatch input[type="color"] {
+      appearance: none; width: 27px; height: 27px; padding: 0; overflow: hidden;
+      border: 1px solid rgba(243,231,239,.28); border-radius: 50%; background: transparent; cursor: pointer;
+    }
+    .swatch input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    .swatch input[type="color"]::-webkit-color-swatch, .swatch input[type="color"]::-moz-color-swatch { border: 0; border-radius: 50%; }
+    .swatch .remove-color { width: 15px; height: 15px; font-size: 10px; }
+    .action-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+    .action-row button { min-height: 26px; padding: 4px 7px; font-size: 8px; }
+    .action-row button:disabled { opacity: .4; cursor: wait; }
+    .add-color-control {
+      position: relative; display: inline-flex; align-items: center; min-height: 26px; padding: 4px 7px;
+      overflow: hidden; border: 1px solid rgba(243,231,239,.13); border-radius: 4px;
+      color: rgba(241,232,223,.7); background: rgba(255,255,255,.025); font-size: 8px; cursor: pointer;
+    }
+    .add-color-control:hover { border-color: rgba(243,231,239,.36); color: var(--paper); }
+    .add-color-control input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+    .export-note { margin: 7px 0 0; color: rgba(241,232,223,.4); font-size: 8px; line-height: 1.5; }
+    .panel-foot { display: flex; justify-content: space-between; margin-top: 11px; color: rgba(241,232,223,.37); font-size: 7px; letter-spacing: .08em; }
+    .panel-foot kbd { padding: 2px 4px; border: 1px solid var(--line); border-radius: 3px; color: rgba(241,232,223,.65); font: inherit; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    @media (max-width: 600px) {
+      .topline { top: 16px; left: 16px; gap: 9px; }
+      .mark { width: 22px; height: 22px; }
+      .mark::before, .mark::after { left: 9px; top: 2px; height: 16px; }
+      .coordinates { top: 16px; right: 16px; font-size: 7px; }
+      .hint { bottom: 19px; left: 15px; max-width: 92px; font-size: 7px; }
+      .dock { bottom: max(10px, env(safe-area-inset-bottom)); }
+      .dock button { min-width: 31px; height: 32px; padding: 0 7px; }
+      .dock .dock-label { font-size: 7px; }
+      .panel { top: auto; right: 8px; bottom: 58px; width: min(365px, calc(100vw - 16px)); max-height: min(76vh, 720px); padding: 14px 15px 12px; transform: translateY(calc(100% + 65px)); }
+      .panel.open { transform: translateY(0); }
+    }
+    @media (max-width: 360px) {
+      .dock { gap: 0; }
+      .dock button { min-width: 29px; padding: 0 5px; }
+      .hint { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="world" aria-label="An interactive painted universe. Drag the void to move its centre, drag through the painting to splash paint, or tap to burst."></canvas>
+  <div class="grain" aria-hidden="true"></div>
+  <header class="topline" aria-label="Into the Void">
+    <div class="mark" aria-hidden="true"></div>
+    <div><p class="wordmark">INTO THE VOID</p><p class="subtitle">A painted universe · 01</p></div>
+  </header>
+  <div class="coordinates" aria-hidden="true"><span id="readout">FIELD 01 / 01</span><br><span id="loop-readout">FREE FLOW</span></div>
+  <p class="hint"><span>Pull the void · Drag paint</span><br>Tap anywhere to splash</p>
+
+  <aside class="panel" id="panel" aria-label="Artwork controls" aria-hidden="true">
+    <div class="panel-head">
+      <h1>Shape the universe</h1>
+      <button id="close-panel" type="button" aria-label="Close settings" title="Close settings">
+        <svg viewBox="0 0 20 20" width="13" height="13" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
+      </button>
+    </div>
+    <details open>
+      <summary>Movement</summary>
+      <div class="detail-content">
+        <div class="control"><div class="control-head"><label for="force">Force / acceleration</label><output id="force-value">62</output></div><div class="range-row"><span class="range-note">SOFT</span><input id="force" data-setting="force" type="range" min="0" max="100" value="62"><span class="range-note">HARD</span></div></div>
+        <div class="control"><div class="control-head"><label for="splash">Splash intensity</label><output id="splash-value">68</output></div><div class="range-row"><span class="range-note">CALM</span><input id="splash" data-setting="splash" type="range" min="0" max="100" value="68"><span class="range-note">WILD</span></div></div>
+        <div class="control"><div class="control-head"><label for="rhythm">Rhythm / pulse</label><output id="rhythm-value">48</output></div><div class="range-row"><span class="range-note">SLOW</span><input id="rhythm" data-setting="rhythm" type="range" min="0" max="100" value="48"><span class="range-note">QUICK</span></div></div>
+        <div class="control"><div class="control-head"><label for="speed">Animation speed</label><output id="speed-value">55</output></div><div class="range-row"><span class="range-note">DRIFT</span><input id="speed" data-setting="speed" type="range" min="0" max="100" value="55"><span class="range-note">RUSH</span></div></div>
+        <div class="control"><div class="control-head"><label for="orbit">Rotation / orbit</label><output id="orbit-value">28</output></div><div class="range-row"><span class="range-note">STILL</span><input id="orbit" data-setting="orbit" type="range" min="0" max="100" value="28"><span class="range-note">TURN</span></div></div>
+        <div class="control-head"><span>Flow direction</span><output id="direction-state">OUTWARD</output></div>
+        <div class="segmented" role="group" aria-label="Flow direction">
+          <button type="button" data-direction="inward" aria-pressed="false">Inward</button>
+          <button type="button" data-direction="outward" class="active" aria-pressed="true">Outward</button>
+          <button type="button" data-direction="pulse" aria-pressed="false">Pulse</button>
+          <button type="button" data-direction="orbit" aria-pressed="false">Orbit</button>
+        </div>
+        <label class="inline-toggle" style="margin-top:10px"><input id="loop-mode" type="checkbox"> Seamless 8-second loop</label>
+      </div>
+    </details>
+    <details>
+      <summary>Composition &amp; depth</summary>
+      <div class="detail-content">
+        <div class="control"><div class="control-head"><label for="center-x">Centre horizontal</label><output id="center-x-value">50%</output></div><div class="range-row"><span class="range-note">LEFT</span><input id="center-x" data-setting="centerX" type="range" min="0" max="100" value="50"><span class="range-note">RIGHT</span></div></div>
+        <div class="control"><div class="control-head"><label for="center-y">Centre vertical</label><output id="center-y-value">50%</output></div><div class="range-row"><span class="range-note">TOP</span><input id="center-y" data-setting="centerY" type="range" min="0" max="100" value="50"><span class="range-note">BOTTOM</span></div></div>
+        <div class="control"><div class="control-head"><label for="perspective">Perspective depth</label><output id="perspective-value">74</output></div><div class="range-row"><span class="range-note">FLAT</span><input id="perspective" data-setting="perspective" type="range" min="0" max="100" value="74"><span class="range-note">DEEP</span></div></div>
+        <div class="control"><div class="control-head"><label for="density">Paint density</label><output id="density-value">78</output></div><div class="range-row"><span class="range-note">SPARSE</span><input id="density" data-setting="density" type="range" min="15" max="100" value="78"><span class="range-note">DENSE</span></div></div>
+        <div class="control"><div class="control-head"><label for="size">Shape size</label><output id="size-value">60</output></div><div class="range-row"><span class="range-note">FINE</span><input id="size" data-setting="size" type="range" min="0" max="100" value="60"><span class="range-note">BOLD</span></div></div>
+        <div class="control"><div class="control-head"><label for="overlap">Shape overlap</label><output id="overlap-value">82</output></div><div class="range-row"><span class="range-note">AIR</span><input id="overlap" data-setting="overlap" type="range" min="0" max="100" value="82"><span class="range-note">LAYER</span></div></div>
+        <div class="control"><div class="control-head"><label for="curvature">Ribbon curvature</label><output id="curvature-value">65</output></div><div class="range-row"><span class="range-note">STRAIGHT</span><input id="curvature" data-setting="curvature" type="range" min="0" max="100" value="65"><span class="range-note">SWIRL</span></div></div>
+        <div class="control"><div class="control-head"><label for="darkness">Void darkness</label><output id="darkness-value">70</output></div><div class="range-row"><span class="range-note">GLOW</span><input id="darkness" data-setting="darkness" type="range" min="0" max="100" value="70"><span class="range-note">INK</span></div></div>
+      </div>
+    </details>
+    <details open>
+      <summary>Shape language</summary>
+      <div class="detail-content">
+        <label class="select-control" for="shape-select">Paint language
+          <select id="shape-select" aria-label="Select canvas shape language">
+            <option value="mixed">Mixed painted forms</option>
+            <option value="rectangles">Rectangles</option>
+            <option value="triangles">Triangles</option>
+            <option value="circles">Circles and rings</option>
+            <option value="ribbons">Ribbons and brushstrokes</option>
+            <option value="shards">Jagged paint shards</option>
+          </select>
+        </label>
+        <div class="control" style="margin-top:12px">
+          <div class="control-head"><label for="ribbon-mix">Ribbon proportion in mixed mode</label><output id="ribbon-mix-value">32%</output></div>
+          <div class="range-row"><span class="range-note">LESS</span><input id="ribbon-mix" type="range" min="0" max="80" value="32" aria-label="Ribbon proportion in mixed mode"><span class="range-note">MORE</span></div>
+        </div>
+        <div class="action-row">
+          <button id="shuffle-shapes" type="button">Shuffle shapes</button>
+          <button id="new-composition" type="button">New composition</button>
+          <button id="random-settings" type="button">Randomise settings</button>
+        </div>
+      </div>
+    </details>
+    <details open>
+      <summary>Colour &amp; pigment</summary>
+      <div class="detail-content">
+        <div class="preset-row" role="group" aria-label="Colour presets">
+          <button type="button" data-preset="cosmic" class="active">Cosmic</button>
+          <button type="button" data-preset="nebula">Nebula</button>
+          <button type="button" data-preset="solar">Solar Flare</button>
+          <button type="button" data-preset="ocean">Deep Ocean</button>
+        </div>
+        <div class="swatches" id="swatches" aria-label="Editable palette"></div>
+        <div class="action-row">
+          <label class="add-color-control">+ Add custom colour<input id="add-color" type="color" value="#55dfce" aria-label="Choose a colour to add to the palette"></label>
+          <button id="random-palette" type="button">Randomise palette</button>
+          <button id="restore-palette" type="button">Restore original</button>
+        </div>
+      </div>
+    </details>
+    <details>
+      <summary>Save &amp; export</summary>
+      <div class="detail-content">
+        <div class="action-row">
+          <button id="save-png" type="button">Save PNG</button>
+          <button id="record-preview" type="button">Record 5s preview</button>
+          <button id="record-loop" type="button">Export 8s loop</button>
+        </div>
+        <p class="export-note" id="export-status" role="status">Video recording uses your browser's supported canvas recording format.</p>
+      </div>
+    </details>
+    <div class="panel-foot"><span>AN OPEN CANVAS</span><span><kbd>H</kbd> HIDE · <kbd>S</kbd> PNG</span></div>
+  </aside>
+
+  <nav class="dock" aria-label="Artwork controls">
+    <button id="settings-button" type="button" aria-expanded="false" aria-controls="panel" data-tooltip="Open controls">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="7" cy="5" r="2" fill="#171321"/><circle cx="13" cy="10" r="2" fill="#171321"/><circle cx="9" cy="15" r="2" fill="#171321"/></svg>
+      <span class="dock-label">Shape</span>
+    </button>
+    <span class="divider" aria-hidden="true"></span>
+    <button id="reverse-button" type="button" aria-pressed="false" aria-label="Reverse flow" data-tooltip="Reverse flow"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h10l-3-3M16 14H6l3 3M14 6l3 3-3 3M6 14l-3-3 3-3"/></svg></button>
+    <button id="splash-button" type="button" aria-label="Make a splash" data-tooltip="Make a splash"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2c1 4 1.8 5 5.5 6.5C11 9.4 10.5 11 10 18c-.8-6.6-1.7-8-5.5-9.5C8 7.6 9 6 10 2Z"/><path d="M3 3v3M1.5 4.5h3M16 14v3M14.5 15.5h3"/></svg></button>
+    <button id="pause-button" type="button" aria-pressed="false" aria-label="Pause animation" data-tooltip="Pause animation"><svg id="pause-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M7 4v12M13 4v12"/></svg></button>
+    <button id="random-button" type="button" aria-label="Shuffle shapes" data-tooltip="Shuffle shapes"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h2c4 0 6 10 10 10h2M14 12l3 3-3 3M3 15h2c1.5 0 2.6-1.6 3.6-3.5M14 2l3 3-3 3M10.5 6.5C11.6 4.5 12.6 5 15 5h2"/></svg></button>
+    <button id="reset-button" type="button" aria-label="Reset composition" data-tooltip="Reset composition"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5v4h4M4.7 8A6 6 0 1 1 5 13"/></svg></button>
+  </nav>
+  <div class="sr-only" id="live-status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      // SETTINGS
+      const LOOP_SECONDS = 8;
+      const PREVIEW_SECONDS = 5;
+      const DEFAULT_PALETTE = ["#15112b", "#315fd8", "#13b9c7", "#fc718c", "#e946a8", "#a78bfa", "#f4dfb7", "#c5f17d"];
+      const PRESETS = {
+        cosmic: DEFAULT_PALETTE,
+        nebula: ["#120c2a", "#5941b5", "#a247d5", "#ed4e9e", "#47c8d4", "#9fefdc", "#f0d4e2", "#201535"],
+        solar: ["#1c1121", "#7f243e", "#f24f5e", "#fa8d5a", "#ffc46b", "#eee3ae", "#c9439b", "#271522"],
+        ocean: ["#071a29", "#123d68", "#167c9a", "#33c5bd", "#88e1cd", "#e5d9c5", "#7e8ec9", "#101626"]
+      };
+      const SHAPES = ["rectangles", "triangles", "circles", "ribbons", "shards"];
+      const INITIAL_SETTINGS = {
+        force: .62, splash: .68, rhythm: .48, speed: .55, orbit: .28, centerX: 50, centerY: 50,
+        perspective: .74, density: .78, size: .60, overlap: .82, curvature: .65, darkness: .70
+      };
+      const DEFAULT_MIX = { rectangles: 14, triangles: 16, circles: 8, ribbons: 32, shards: 40 };
+      const TAU = Math.PI * 2;
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+      const rand = (min, max) => min + Math.random() * (max - min);
+      const canvas = document.getElementById("world");
+      const ctx = canvas.getContext("2d", { alpha: false });
+      const panel = document.getElementById("panel");
+      const liveStatus = document.getElementById("live-status");
+      const exportStatus = document.getElementById("export-status");
+
+      // STATE
+      const state = {
+        ...INITIAL_SETTINGS, palette: DEFAULT_PALETTE.slice(), preset: "cosmic", shape: "mixed",
+        direction: "outward", reversed: false, paused: false, loop: false, time: 0,
+        width: 0, height: 0, dpr: 1, maxRadius: 0, center: { x: 0, y: 0 }, hasCenter: false,
+        pointer: { x: -1000, y: -1000, active: false, down: false }, dragging: false,
+        shapes: [], bursts: [], mix: { ...DEFAULT_MIX }, lastFrame: 0, recording: false
+      };
+      let grainCanvas;
+      let grainPattern;
+      let recordingTimer = 0;
+      let recordingChunks = [];
+
+      // SETUP
+      function makeGrain() {
+        grainCanvas = document.createElement("canvas");
+        grainCanvas.width = grainCanvas.height = 160;
+        const grainContext = grainCanvas.getContext("2d");
+        const image = grainContext.createImageData(160, 160);
+        for (let i = 0; i < image.data.length; i += 4) {
+          const value = Math.random() * 255;
+          image.data[i] = image.data[i + 1] = image.data[i + 2] = value;
+          image.data[i + 3] = Math.random() * 38;
+        }
+        grainContext.putImageData(image, 0, 0);
+        grainPattern = ctx.createPattern(grainCanvas, "repeat");
+      }
+
+      function resize() {
+        const bounds = canvas.getBoundingClientRect();
+        state.width = bounds.width;
+        state.height = bounds.height;
+        state.dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(state.width * state.dpr);
+        canvas.height = Math.round(state.height * state.dpr);
+        ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+        state.maxRadius = Math.hypot(state.width, state.height) * .72;
+        if (!state.hasCenter) {
+          state.center.x = state.width * state.centerX / 100;
+          state.center.y = state.height * state.centerY / 100;
+          state.hasCenter = true;
+        } else {
+          state.center.x = state.width * state.centerX / 100;
+          state.center.y = state.height * state.centerY / 100;
+        }
+        reconcileShapes();
+      }
+
+      function shapeCount() {
+        const scale = state.width < 600 ? 1700 : 1550;
+        return clamp(Math.round(state.width * state.height / scale * (.35 + state.density * 1.25)), 200, state.width < 600 ? 460 : 900);
+      }
+
+      function mixedShapeAt(roll) {
+        const ribbonWeight = state.mix.ribbons / 100;
+        const otherTypes = SHAPES.filter(type => type !== "ribbons");
+        const otherTotal = otherTypes.reduce((sum, type) => sum + state.mix[type], 0);
+        let choice = roll;
+        for (const type of otherTypes) {
+          const weight = otherTotal ? (1 - ribbonWeight) * state.mix[type] / otherTotal : (1 - ribbonWeight) / otherTypes.length;
+          choice -= weight;
+          if (choice <= 0) return type;
+        }
+        return "ribbons";
+      }
+
+      function assignShapeTypes() {
+        for (const shape of state.shapes) {
+          const previousType = shape.type;
+          shape.type = state.shape === "mixed" ? mixedShapeAt(shape.mixRoll) : state.shape;
+          if (shape.type !== previousType) {
+            shape.length = shape.width * (shape.type === "ribbons" ? rand(1.9, 3.5) : rand(1.25, 2.2));
+          }
+        }
+      }
+
+      function makeShape(index, randomize = false) {
+        const depth = Math.pow(Math.random(), .76);
+        const angle = rand(0, TAU);
+        const radius = randomize ? rand(0, state.maxRadius) : state.maxRadius * Math.pow(Math.random(), .72);
+        const mixRoll = Math.random();
+        const type = state.shape === "mixed" ? mixedShapeAt(mixRoll) : state.shape;
+        const paletteIndex = Math.floor(Math.random() * state.palette.length);
+        const sizeBase = rand(20, 62) * (.62 + depth * 1.1);
+        return {
+          index, type, mixRoll, angle, radius, homeRadius: radius, phase: rand(0, TAU), phaseRate: Math.floor(rand(1, 4)),
+          speed: rand(28, 100) * (.42 + depth * 1.3), length: sizeBase * (type === "ribbons" ? rand(1.9, 3.5) : rand(1.25, 2.2)),
+          width: rand(8, 26) * (.55 + depth * .82), depth, paletteIndex, spin: rand(-.3, .3),
+          seed: rand(0, 1000), bend: rand(-1, 1), opacity: rand(.55, .94),
+          kickX: 0, kickY: 0, kickSpin: 0, kick: 0
+        };
+      }
+
+      function reconcileShapes(randomize = false) {
+        const count = shapeCount();
+        if (randomize || !state.shapes.length) {
+          state.shapes = Array.from({ length: count }, (_, index) => makeShape(index, randomize));
+        } else {
+          if (state.shapes.length > count) state.shapes.length = count;
+          while (state.shapes.length < count) state.shapes.push(makeShape(state.shapes.length));
+        }
+        state.shapes.forEach(shape => {
+          if (shape.paletteIndex >= state.palette.length) shape.paletteIndex %= state.palette.length;
+          shape.radius = Math.min(shape.radius, state.maxRadius);
+          shape.homeRadius = Math.min(shape.homeRadius, state.maxRadius);
+        });
+        state.shapes.sort((a, b) => a.depth - b.depth);
+      }
+
+      // DRAW
+      function pathShape(shape, length, width, curvature) {
+        const L = length;
+        const W = width;
+        const rough = n => Math.sin(n * 12.9898 + shape.seed * 78.233) * .5;
+        ctx.beginPath();
+        if (shape.type === "circles") {
+          const ring = shape.seed % 3 < 1;
+          if (ring) {
+            ctx.ellipse(0, 0, L * .32, W * .6, .1 * shape.bend, 0, TAU);
+            ctx.ellipse(0, 0, L * .23, W * .37, .1 * shape.bend, 0, TAU, true);
+          } else {
+            ctx.moveTo(-L * .3, 0);
+            ctx.bezierCurveTo(-L * .36, -W * .7, L * .35, -W * .72, L * .29, 0);
+            ctx.bezierCurveTo(L * .36, W * .74, -L * .34, W * .68, -L * .3, 0);
+            ctx.closePath();
+          }
+        } else if (shape.type === "ribbons") {
+          const curve = curvature * W * 3.5 * shape.bend;
+          ctx.moveTo(-L * .54, -W * .06);
+          ctx.bezierCurveTo(-L * .2, -W * .5 + curve, L * .08, W * .55 + curve, L * .54, -W * .05);
+          ctx.lineTo(L * .5, W * .13);
+          ctx.bezierCurveTo(L * .08, W * .72 + curve, -L * .19, -W * .44 + curve, -L * .54, W * .1);
+          ctx.closePath();
+        } else if (shape.type === "triangles") {
+          ctx.moveTo(-L * .52, W * .34);
+          ctx.lineTo(L * .49, -W * .24);
+          ctx.lineTo(-L * .12 + rough(2) * W, -W * .47);
+          ctx.closePath();
+        } else if (shape.type === "rectangles") {
+          ctx.moveTo(-L * .5, -W * (.4 + rough(1) * .12));
+          ctx.lineTo(L * .45, -W * .34);
+          ctx.lineTo(L * .5, W * (.3 + rough(2) * .12));
+          ctx.lineTo(-L * .42, W * .45);
+          ctx.closePath();
+        } else {
+          const steps = 5;
+          ctx.moveTo(-L * .53, rough(1) * W * .1);
+          for (let i = 0; i <= steps; i++) {
+            const p = i / steps;
+            const taper = Math.sin(p * Math.PI) * W * (.38 + .56 * ((i * 17 + shape.index) % 7) / 6);
+            ctx.lineTo(-L * .52 + L * .98 * p, -taper + rough(i + 2) * W * .1);
+          }
+          ctx.lineTo(L * .52, rough(steps + 3) * W * .08);
+          for (let i = steps; i >= 0; i--) {
+            const p = i / steps;
+            const taper = Math.sin(p * Math.PI) * W * (.35 + .6 * ((i * 13 + shape.index * 3) % 9) / 8);
+            ctx.lineTo(-L * .52 + L * .98 * p, taper - rough(i + steps + 4) * W * .1);
+          }
+          ctx.closePath();
+        }
+      }
+
+      function paintShape(shape, loopPhase, pulse) {
+        const loopKickPhase = state.loop ? Math.sin(loopPhase) : 1;
+        const kickX = shape.kickX * loopKickPhase;
+        const kickY = shape.kickY * loopKickPhase;
+        const kickSpin = shape.kickSpin * loopKickPhase;
+        const kick = shape.kick * Math.abs(loopKickPhase);
+        const depth = .38 + shape.depth * (.62 + state.perspective * .92);
+        const sizeMultiplier = (.42 + state.size * 1.05) * depth;
+        const length = shape.length * sizeMultiplier * (1 + kick * state.splash * .85);
+        const width = shape.width * sizeMultiplier * (.7 + state.overlap * .55);
+        let radius = shape.radius;
+        let angle = shape.angle;
+        if (state.loop) {
+          const direction = state.reversed ? -1 : 1;
+          const cyclic = loopPhase * direction * shape.phaseRate * (1 + Math.round(state.speed * 2)) + shape.phase;
+          const radialAmount = state.maxRadius * (.055 + state.force * .14);
+          const radialDirection = state.direction === "inward" ? -1 : 1;
+          radius = state.direction === "orbit"
+            ? shape.homeRadius
+            : shape.homeRadius + Math.sin(cyclic) * radialAmount * radialDirection;
+          angle += Math.sin(loopPhase + shape.phase) * state.orbit * .28;
+          if (state.direction === "orbit") angle += loopPhase * direction * (1 + Math.floor(state.orbit * 2)) * (1 + Math.round(state.speed * 2));
+        } else if (state.direction === "pulse") {
+          radius = shape.homeRadius + pulse * state.maxRadius * (.055 + state.force * .13);
+        }
+        const x = state.center.x + Math.cos(angle) * radius + kickX;
+        const y = state.center.y + Math.sin(angle) * radius + kickY;
+        let drawX = x;
+        let drawY = y;
+        if (state.pointer.active) {
+          const dx = x - state.pointer.x;
+          const dy = y - state.pointer.y;
+          const distance = Math.hypot(dx, dy);
+          const influence = Math.max(0, 1 - distance / (state.pointer.down ? 245 : 165));
+          if (influence) {
+            const push = influence * (state.pointer.down ? 30 : 14) * state.splash;
+            drawX += dx / (distance || 1) * push;
+            drawY += dy / (distance || 1) * push;
+          }
+        }
+        const centerDistance = clamp(Math.abs(radius) / state.maxRadius, 0, 1);
+        const collapse = clamp(.12 + centerDistance * (1.1 + state.perspective * .9), .08, 1.8);
+        const flowSign = (state.direction === "inward" ? -1 : 1) * (state.reversed ? -1 : 1);
+        const heading = angle + (flowSign < 0 ? Math.PI : 0) + shape.spin * Math.sin(loopPhase + shape.phase) * .3 + kickSpin;
+        const alpha = shape.opacity * (.36 + shape.depth * .65) * (1 - kick * .12);
+        ctx.save();
+        ctx.translate(drawX, drawY);
+        ctx.rotate(heading);
+        ctx.scale(collapse, collapse);
+        ctx.globalAlpha = clamp(alpha, .08, .96);
+        if (shape.depth < .19) ctx.filter = "blur(.65px)";
+        const color = state.palette[shape.paletteIndex % state.palette.length];
+        ctx.fillStyle = color;
+        pathShape(shape, length, width, state.curvature);
+        ctx.fill("evenodd");
+        if (shape.type === "ribbons") {
+          ctx.globalAlpha *= .2;
+          ctx.strokeStyle = "#fff2df";
+          ctx.lineWidth = Math.max(.45, width * .055);
+          ctx.stroke();
+        }
+        if (shape.depth > .78 && shape.type !== "circles") {
+          ctx.globalAlpha *= .14;
+          ctx.fillStyle = "#fff3e2";
+          ctx.fillRect(-length * .17, -Math.max(.45, width * .025), length * .26, Math.max(.55, width * .05));
+        }
+        ctx.restore();
+      }
+
+      function drawBackdrop(loopPhase) {
+        const darkness = state.darkness;
+        ctx.fillStyle = `rgb(${Math.round(25 - darkness * 13)},${Math.round(17 - darkness * 9)},${Math.round(43 - darkness * 22)})`;
+        ctx.fillRect(0, 0, state.width, state.height);
+        const extent = Math.max(state.width, state.height) * .75;
+        const voidRadius = Math.min(state.width, state.height) * (.055 + darkness * .1);
+        const gradient = ctx.createRadialGradient(state.center.x, state.center.y, voidRadius * .25, state.center.x, state.center.y, extent);
+        gradient.addColorStop(0, `rgba(5,4,13,${.78 + darkness * .2})`);
+        gradient.addColorStop(.18, `rgba(14,9,25,${.75 + darkness * .18})`);
+        gradient.addColorStop(.48, "rgba(30,18,47,.22)");
+        gradient.addColorStop(1, "rgba(7,6,14,.3)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, state.width, state.height);
+        ctx.globalAlpha = .045;
+        ctx.fillStyle = state.palette[0];
+        ctx.beginPath();
+        ctx.ellipse(state.center.x, state.center.y, extent * .55, extent * .28, Math.sin(loopPhase) * .025, 0, TAU);
+        ctx.fill();
+        ctx.globalAlpha = .1;
+        ctx.fillStyle = grainPattern;
+        ctx.fillRect(0, 0, state.width, state.height);
+        ctx.globalAlpha = 1;
+      }
+
+      function drawCore(loopPhase) {
+        const r = 20 + state.force * 28;
+        const glow = ctx.createRadialGradient(state.center.x, state.center.y, 0, state.center.x, state.center.y, r * 2.7);
+        glow.addColorStop(0, "rgba(9,7,19,.97)");
+        glow.addColorStop(.44, "rgba(13,9,24,.86)");
+        glow.addColorStop(.68, "rgba(20,13,31,.44)");
+        glow.addColorStop(1, "rgba(20,13,31,0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(state.center.x, state.center.y, r * 2.7, 0, TAU);
+        ctx.fill();
+        const flicker = .84 + .16 * Math.sin(loopPhase * 2);
+        ctx.save();
+        ctx.globalAlpha = flicker * .8;
+        ctx.shadowColor = state.palette[2] || "#55dece";
+        ctx.shadowBlur = 17 + state.force * 22;
+        ctx.strokeStyle = state.palette[2] || "#55dece";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(state.center.x, state.center.y, r * .45, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawBursts(dt) {
+        state.bursts = state.bursts.filter(burst => burst.age < burst.life);
+        for (const burst of state.bursts) {
+          burst.age += dt;
+          const t = burst.age / burst.life;
+          const radius = burst.radius * (1 - Math.pow(1 - t, 3));
+          ctx.save();
+          ctx.globalAlpha = (1 - t) * .54;
+          ctx.strokeStyle = burst.color;
+          ctx.lineWidth = (1 - t) * (1 + burst.intensity * 3);
+          ctx.beginPath();
+          ctx.ellipse(burst.x, burst.y, radius, radius * (.56 + .12 * Math.sin(t * Math.PI)), burst.angle, 0, TAU);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      function render(now) {
+        const elapsed = state.lastFrame ? Math.min(.04, (now - state.lastFrame) / 1000) : 0;
+        state.lastFrame = now;
+        const dt = state.paused ? 0 : elapsed;
+        if (!state.paused) state.time += dt * (state.loop ? 1 : .12 + state.speed * 2.35);
+        const loopPhase = ((state.time % LOOP_SECONDS) / LOOP_SECONDS) * TAU;
+        const pulse = Math.sin(loopPhase * (1 + Math.round(state.rhythm * 2)) * (state.reversed ? -1 : 1));
+        const directionSign = (state.direction === "inward" ? -1 : 1) * (state.reversed ? -1 : 1);
+        drawBackdrop(loopPhase);
+        for (const shape of state.shapes) {
+          if (!state.paused && !state.loop) {
+            const velocity = shape.speed * (.12 + state.speed * 2.3) * (.18 + state.force * 2) * dt;
+            if (state.direction === "pulse") shape.radius = shape.homeRadius + pulse * state.maxRadius * (.055 + state.force * .13);
+            else if (state.direction === "orbit") {
+              shape.radius = shape.homeRadius;
+              shape.angle += state.orbit * dt * (state.reversed ? -1 : 1);
+            } else {
+              shape.radius += velocity * directionSign;
+              if (shape.radius > state.maxRadius + shape.length) {
+                shape.radius = -shape.length * .4;
+                shape.homeRadius = shape.radius;
+                shape.angle = rand(0, TAU);
+              } else if (shape.radius < -shape.length) {
+                shape.radius = state.maxRadius + rand(0, shape.length * .4);
+                shape.homeRadius = shape.radius;
+                shape.angle = rand(0, TAU);
+              }
+            }
+            shape.kickX *= Math.exp(-dt * (1.2 + state.rhythm * 2));
+            shape.kickY *= Math.exp(-dt * (1.2 + state.rhythm * 2));
+            shape.kickSpin *= Math.exp(-dt * 2.5);
+            shape.kick *= Math.exp(-dt * 1.7);
+          }
+          paintShape(shape, loopPhase, pulse);
+        }
+        if (!state.loop) drawBursts(dt);
+        drawCore(loopPhase);
+        updateLoopUI();
+        requestAnimationFrame(render);
+      }
+
+      // UPDATE
+      function syncCenterControls() {
+        const x = document.getElementById("center-x");
+        const y = document.getElementById("center-y");
+        x.value = String(Math.round(state.center.x / state.width * 100));
+        y.value = String(Math.round(state.center.y / state.height * 100));
+        updateRangeDisplay(x, `${x.value}%`);
+        updateRangeDisplay(y, `${y.value}%`);
+      }
+
+      function updateRangeDisplay(input, displayValue = input.value) {
+        input.style.setProperty("--range", `${(Number(input.value) - Number(input.min)) / (Number(input.max) - Number(input.min)) * 100}%`);
+        const output = document.getElementById(`${input.id}-value`);
+        if (output) output.textContent = displayValue;
+      }
+
+      function setDirection(direction) {
+        state.direction = direction;
+        document.querySelectorAll("[data-direction]").forEach(button => {
+          const active = button.dataset.direction === direction;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+        document.getElementById("direction-state").textContent = direction.toUpperCase();
+      }
+
+      function setShape(shape) {
+        state.shape = shape;
+        document.getElementById("shape-select").value = shape;
+        assignShapeTypes();
+        reconcileShapes();
+      }
+
+      function applyPreset(name) {
+        state.palette = PRESETS[name].slice();
+        state.preset = name;
+        updatePaletteInputs();
+        document.querySelectorAll("[data-preset]").forEach(button => {
+          const active = button.dataset.preset === name;
+          button.classList.toggle("active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+      }
+
+      function updatePaletteInputs() {
+        const host = document.getElementById("swatches");
+        host.replaceChildren();
+        state.palette.forEach((color, index) => {
+          const swatch = document.createElement("div");
+          swatch.className = "swatch";
+          const picker = document.createElement("input");
+          picker.type = "color";
+          picker.value = color;
+          picker.setAttribute("aria-label", `Palette colour ${index + 1}`);
+          picker.addEventListener("input", () => {
+            state.palette[index] = picker.value;
+            state.preset = "";
+            document.querySelectorAll("[data-preset]").forEach(button => button.classList.remove("active"));
+          });
+          const number = document.createElement("span");
+          number.textContent = String(index + 1).padStart(2, "0");
+          swatch.append(picker, number);
+          if (state.palette.length > 2) {
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.className = "icon-button remove-color";
+            remove.textContent = "×";
+            remove.setAttribute("aria-label", `Remove palette colour ${index + 1}`);
+            remove.addEventListener("click", () => {
+              state.palette.splice(index, 1);
+              state.shapes.forEach(shape => { shape.paletteIndex %= state.palette.length; });
+              state.preset = "";
+              document.querySelectorAll("[data-preset]").forEach(button => button.classList.remove("active"));
+              updatePaletteInputs();
+            });
+            swatch.append(remove);
+          }
+          host.append(swatch);
+        });
+      }
+
+      function randomisePalette() {
+        const hue = Math.random() * 360;
+        state.palette = Array.from({ length: 8 }, (_, index) => {
+          const h = (hue + index * rand(23, 64)) % 360;
+          const s = rand(48, 86);
+          const l = index === 0 ? rand(8, 17) : rand(45, 73);
+          return hslToHex(h, s, l);
+        });
+        state.preset = "";
+        document.querySelectorAll("[data-preset]").forEach(button => button.classList.remove("active"));
+        updatePaletteInputs();
+      }
+
+      function hslToHex(h, s, l) {
+        s /= 100; l /= 100;
+        const a = s * Math.min(l, 1 - l);
+        const f = n => {
+          const k = (n + h / 30) % 12;
+          const color = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+          return Math.round(255 * color).toString(16).padStart(2, "0");
+        };
+        return `#${f(0)}${f(8)}${f(4)}`;
+      }
+
+      function randomiseSettings() {
+        document.querySelectorAll("[data-setting]").forEach(input => {
+          const min = Number(input.min);
+          const max = Number(input.max);
+          const value = Math.round(rand(min, max));
+          input.value = String(value);
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+        const direction = ["inward", "outward", "pulse", "orbit"][Math.floor(Math.random() * 4)];
+        setDirection(direction);
+        const shapeOptions = ["mixed", ...SHAPES];
+        setShape(shapeOptions[Math.floor(Math.random() * shapeOptions.length)]);
+        const ribbon = document.getElementById("ribbon-mix");
+        ribbon.value = String(Math.round(rand(Number(ribbon.min), Number(ribbon.max))));
+        ribbon.dispatchEvent(new Event("input", { bubbles: true }));
+        liveStatus.textContent = "Movement and composition settings randomised.";
+      }
+
+      function shuffleShapes() {
+        state.shapes = state.shapes.map((shape, index) => {
+          const shuffled = makeShape(index, true);
+          shuffled.angle = shape.angle;
+          shuffled.radius = shape.radius;
+          shuffled.homeRadius = shape.homeRadius;
+          shuffled.depth = shape.depth;
+          shuffled.kickX = shape.kickX;
+          shuffled.kickY = shape.kickY;
+          shuffled.kickSpin = shape.kickSpin;
+          shuffled.kick = shape.kick;
+          return shuffled;
+        });
+        state.shapes.sort((a, b) => a.depth - b.depth);
+        liveStatus.textContent = "Shape arrangement shuffled.";
+      }
+
+      function setLoopEnabled(enabled) {
+        state.loop = enabled;
+        document.getElementById("loop-mode").checked = enabled;
+        if (enabled) {
+          state.time = 0;
+          state.bursts.length = 0;
+          state.shapes.forEach(shape => {
+            shape.homeRadius = shape.radius;
+            shape.kickX = shape.kickY = shape.kickSpin = shape.kick = 0;
+          });
+          exportStatus.textContent = "Loop mode uses deterministic, periodic 8-second motion.";
+        }
+        updateLoopUI();
+      }
+
+      function setPaused(paused) {
+        state.paused = paused;
+        const button = document.getElementById("pause-button");
+        button.setAttribute("aria-pressed", String(paused));
+        button.setAttribute("aria-label", paused ? "Resume animation" : "Pause animation");
+        button.dataset.tooltip = paused ? "Resume animation" : "Pause animation";
+        document.getElementById("pause-icon").innerHTML = paused
+          ? '<path d="m7 4 9 6-9 6z" fill="currentColor" stroke="none"/>'
+          : '<path d="M7 4v12M13 4v12"/>';
+      }
+
+      function paintKick(x, y, amount = 1) {
+        const intensity = state.splash * amount;
+        const radius = 150 + intensity * 260;
+        const angleOffset = rand(-.12, .12);
+        state.bursts.push({
+          x, y, age: 0, life: .7 + intensity * .8, radius: 90 + intensity * 300,
+          angle: angleOffset, intensity, color: state.palette[Math.floor(Math.random() * state.palette.length)]
+        });
+        for (const shape of state.shapes) {
+          const sx = state.center.x + Math.cos(shape.angle) * shape.radius + shape.kickX;
+          const sy = state.center.y + Math.sin(shape.angle) * shape.radius + shape.kickY;
+          const dx = sx - x;
+          const dy = sy - y;
+          const distance = Math.hypot(dx, dy);
+          if (distance >= radius) continue;
+          const falloff = (1 - distance / radius) ** 2;
+          const direction = Math.atan2(dy, dx) + rand(-.48, .48);
+          const impulse = (30 + intensity * 230) * falloff;
+          shape.kickX += Math.cos(direction) * impulse;
+          shape.kickY += Math.sin(direction) * impulse;
+          shape.kickSpin += rand(-1, 1) * falloff * intensity * 1.4;
+          shape.kick = Math.min(1.4, shape.kick + falloff * intensity);
+        }
+      }
+
+      function setPanel(open) {
+        panel.classList.toggle("open", open);
+        panel.setAttribute("aria-hidden", String(!open));
+        const button = document.getElementById("settings-button");
+        button.setAttribute("aria-expanded", String(open));
+        button.setAttribute("aria-label", open ? "Close controls" : "Open controls");
+        button.dataset.tooltip = open ? "Close controls" : "Open controls";
+        if (open) document.getElementById("close-panel").focus({ preventScroll: true });
+      }
+
+      function updateLoopUI() {
+        document.getElementById("loop-readout").textContent = state.loop
+          ? `LOOP ${String(Math.floor(state.time % LOOP_SECONDS)).padStart(2, "0")} / 08`
+          : "FREE FLOW";
+      }
+
+      // EXPORT
+      function savePNG() {
+        canvas.toBlob(blob => {
+          if (!blob) {
+            exportStatus.textContent = "PNG export failed. Try again in a browser that supports canvas export.";
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "into-the-void.png";
+          link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          exportStatus.textContent = "PNG saved.";
+        }, "image/png");
+      }
+
+      function supportedVideoType() {
+        if (typeof MediaRecorder === "undefined" || typeof canvas.captureStream !== "function") return "";
+        const types = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+        return types.find(type => MediaRecorder.isTypeSupported(type)) || "";
+      }
+
+      function recordVideo(seconds) {
+        if (state.recording) return;
+        const mimeType = supportedVideoType();
+        if (!mimeType) {
+          exportStatus.textContent = "This browser does not support canvas video recording. Try the latest Chrome or Edge.";
+          liveStatus.textContent = exportStatus.textContent;
+          return;
+        }
+        let stream;
+        let recorder;
+        try {
+          stream = canvas.captureStream(30);
+          recorder = new MediaRecorder(stream, { mimeType });
+        } catch (error) {
+          exportStatus.textContent = `Could not start recording: ${error.message}`;
+          return;
+        }
+        const buttonIds = ["record-preview", "record-loop"];
+        const buttons = buttonIds.map(id => document.getElementById(id));
+        const restoreLoop = state.loop;
+        const restorePaused = state.paused;
+        if (seconds === LOOP_SECONDS) setLoopEnabled(true);
+        if (state.paused) setPaused(false);
+        state.recording = true;
+        recordingChunks = [];
+        buttons.forEach(button => { button.disabled = true; });
+        exportStatus.textContent = `Recording ${seconds}-second ${seconds === LOOP_SECONDS ? "loop" : "preview"}…`;
+        recorder.addEventListener("dataavailable", event => {
+          if (event.data && event.data.size) recordingChunks.push(event.data);
+        });
+        recorder.addEventListener("error", event => {
+          exportStatus.textContent = `Recording failed: ${event.error ? event.error.message : "unknown recording error"}`;
+        });
+        recorder.addEventListener("stop", () => {
+          stream.getTracks().forEach(track => track.stop());
+          state.recording = false;
+          if (seconds === LOOP_SECONDS) setLoopEnabled(restoreLoop);
+          setPaused(restorePaused);
+          buttons.forEach(button => { button.disabled = false; });
+          if (!recordingChunks.length) {
+            exportStatus.textContent = "Recording ended without video data.";
+            return;
+          }
+          const blob = new Blob(recordingChunks, { type: mimeType });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = seconds === LOOP_SECONDS ? "into-the-void-loop.webm" : "into-the-void-preview.webm";
+          link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1500);
+          exportStatus.textContent = `${seconds}-second video saved as WebM.`;
+        }, { once: true });
+        recorder.start(150);
+        recordingTimer = window.setTimeout(() => {
+          if (recorder.state !== "inactive") recorder.stop();
+        }, seconds * 1000);
+      }
+
+      // INPUT
+      document.querySelectorAll("[data-setting]").forEach(input => {
+        const key = input.dataset.setting;
+        const outputText = key === "centerX" || key === "centerY" ? value => `${value}%` : value => value;
+        const update = () => {
+          const value = Number(input.value);
+          state[key] = key === "centerX" || key === "centerY" ? value : value / 100;
+          if (key === "centerX") state.center.x = state.width * value / 100;
+          if (key === "centerY") state.center.y = state.height * value / 100;
+          updateRangeDisplay(input, outputText(value));
+          if (key === "density") reconcileShapes();
+        };
+        input.addEventListener("input", update);
+        update();
+      });
+      document.querySelectorAll("[data-direction]").forEach(button => button.addEventListener("click", () => setDirection(button.dataset.direction)));
+      document.getElementById("shape-select").addEventListener("change", event => setShape(event.currentTarget.value));
+      document.getElementById("ribbon-mix").addEventListener("input", event => {
+        const value = Number(event.currentTarget.value);
+        state.mix.ribbons = value;
+        document.getElementById("ribbon-mix-value").textContent = `${value}%`;
+        updateRangeDisplay(event.currentTarget, `${value}%`);
+        if (state.shape === "mixed") assignShapeTypes();
+      });
+      document.querySelectorAll("[data-preset]").forEach(button => button.addEventListener("click", () => applyPreset(button.dataset.preset)));
+      document.getElementById("loop-mode").addEventListener("change", event => {
+        setLoopEnabled(event.currentTarget.checked);
+      });
+      document.getElementById("add-color").addEventListener("change", event => {
+        if (state.palette.length >= 12) {
+          exportStatus.textContent = "Palette is full. Remove a colour before adding another.";
+          return;
+        }
+        state.palette.push(event.currentTarget.value);
+        state.preset = "";
+        updatePaletteInputs();
+        document.querySelectorAll("[data-preset]").forEach(button => button.classList.remove("active"));
+      });
+      document.getElementById("random-palette").addEventListener("click", randomisePalette);
+      document.getElementById("restore-palette").addEventListener("click", () => applyPreset("cosmic"));
+      document.getElementById("save-png").addEventListener("click", savePNG);
+      document.getElementById("record-preview").addEventListener("click", () => recordVideo(PREVIEW_SECONDS));
+      document.getElementById("record-loop").addEventListener("click", () => recordVideo(LOOP_SECONDS));
+      document.getElementById("splash-button").addEventListener("click", () => paintKick(state.center.x, state.center.y));
+      document.getElementById("shuffle-shapes").addEventListener("click", shuffleShapes);
+      document.getElementById("new-composition").addEventListener("click", () => {
+        reconcileShapes(true);
+        state.bursts.length = 0;
+        liveStatus.textContent = "New composition created with current settings.";
+      });
+      document.getElementById("random-settings").addEventListener("click", randomiseSettings);
+
+      document.getElementById("settings-button").addEventListener("click", () => setPanel(!panel.classList.contains("open")));
+      document.getElementById("close-panel").addEventListener("click", () => {
+        setPanel(false);
+        document.getElementById("settings-button").focus({ preventScroll: true });
+      });
+      document.getElementById("reverse-button").addEventListener("click", event => {
+        state.reversed = !state.reversed;
+        event.currentTarget.setAttribute("aria-pressed", String(state.reversed));
+        liveStatus.textContent = state.reversed ? "Flow reversed." : "Flow restored.";
+      });
+      document.getElementById("pause-button").addEventListener("click", event => {
+        setPaused(!state.paused);
+        liveStatus.textContent = state.paused ? "Animation paused." : "Animation resumed.";
+      });
+      document.getElementById("random-button").addEventListener("click", shuffleShapes);
+      document.getElementById("reset-button").addEventListener("click", () => {
+        Object.assign(state, INITIAL_SETTINGS);
+        document.querySelectorAll("[data-setting]").forEach(input => {
+          const key = input.dataset.setting;
+          const percentageSetting = key === "centerX" || key === "centerY";
+          input.value = String(Math.round(percentageSetting ? state[key] : state[key] * 100));
+          updateRangeDisplay(input, key === "centerX" || key === "centerY" ? `${input.value}%` : input.value);
+        });
+        state.center.x = state.width * .5;
+        state.center.y = state.height * .5;
+        state.hasCenter = true;
+        setShape("mixed");
+        setDirection("outward");
+        state.reversed = false;
+        setPaused(false);
+        state.loop = false;
+        state.time = 0;
+        state.bursts.length = 0;
+        state.mix = { ...DEFAULT_MIX };
+        document.getElementById("ribbon-mix").value = String(state.mix.ribbons);
+        document.getElementById("ribbon-mix-value").textContent = `${state.mix.ribbons}%`;
+        updateRangeDisplay(document.getElementById("ribbon-mix"), `${state.mix.ribbons}%`);
+        document.getElementById("loop-mode").checked = false;
+        document.getElementById("reverse-button").setAttribute("aria-pressed", "false");
+        applyPreset("cosmic");
+        reconcileShapes(true);
+        updateLoopUI();
+        liveStatus.textContent = "Composition reset.";
+      });
+
+      let lastSplash = 0;
+      let dragMoved = false;
+      canvas.addEventListener("pointerdown", event => {
+        const bounds = canvas.getBoundingClientRect();
+        const x = event.clientX - bounds.left;
+        const y = event.clientY - bounds.top;
+        const nearCenter = Math.hypot(x - state.center.x, y - state.center.y) < 58;
+        state.pointer.x = x;
+        state.pointer.y = y;
+        state.pointer.active = true;
+        state.pointer.down = true;
+        dragMoved = false;
+        if (nearCenter) {
+          state.dragging = true;
+          canvas.setPointerCapture(event.pointerId);
+        } else {
+          paintKick(x, y);
+          lastSplash = performance.now();
+          canvas.setPointerCapture(event.pointerId);
+        }
+      });
+      canvas.addEventListener("pointermove", event => {
+        const bounds = canvas.getBoundingClientRect();
+        state.pointer.x = event.clientX - bounds.left;
+        state.pointer.y = event.clientY - bounds.top;
+        state.pointer.active = true;
+        if (state.dragging) {
+          if (Math.hypot(state.pointer.x - state.center.x, state.pointer.y - state.center.y) > 2) dragMoved = true;
+          state.center.x = clamp(state.pointer.x, 0, state.width);
+          state.center.y = clamp(state.pointer.y, 0, state.height);
+          state.centerX = state.center.x / state.width * 100;
+          state.centerY = state.center.y / state.height * 100;
+          syncCenterControls();
+        } else if (state.pointer.down && performance.now() - lastSplash > 70) {
+          paintKick(state.pointer.x, state.pointer.y, .48);
+          lastSplash = performance.now();
+        }
+      });
+      function releasePointer() {
+        if (state.dragging && !dragMoved) paintKick(state.center.x, state.center.y);
+        state.dragging = false;
+        state.pointer.down = false;
+      }
+      canvas.addEventListener("pointerup", releasePointer);
+      canvas.addEventListener("pointercancel", releasePointer);
+      canvas.addEventListener("pointerleave", () => {
+        if (!state.dragging) state.pointer.active = false;
+      });
+      window.addEventListener("keydown", event => {
+        const target = event.target;
+        if (target instanceof HTMLElement && target.closest("input,textarea,select,[contenteditable='true']")) return;
+        if (event.code === "Space" && target instanceof HTMLElement && target.closest("button,summary")) return;
+        if (event.key === "Escape" && panel.classList.contains("open")) setPanel(false);
+        if (event.key.toLowerCase() === "h") setPanel(!panel.classList.contains("open"));
+        if (event.code === "Space") {
+          event.preventDefault();
+          document.getElementById("pause-button").click();
+        }
+        if (event.key.toLowerCase() === "r") document.getElementById("random-button").click();
+        if (event.key.toLowerCase() === "s") savePNG();
+      });
+
+      // UI
+      document.getElementById("force").style.setProperty("--range", "62%");
+      document.querySelectorAll("[data-setting]").forEach(input => updateRangeDisplay(input));
+      updateRangeDisplay(document.getElementById("ribbon-mix"), "32%");
+      updatePaletteInputs();
+      makeGrain();
+      resize();
+      window.addEventListener("resize", resize, { passive: true });
+      requestAnimationFrame(render);
+    })();
+  </script>
+</body>
+</html>
